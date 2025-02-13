@@ -1,1 +1,1 @@
-# Design-of-Combinatorial-Algorithms
+# Design of Combinatorial Algorithms
