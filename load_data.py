@@ -35,6 +35,7 @@ def load_instance(file_path):
     with open(file_path, 'r') as file:
         lines = [line for line in file.readlines()]
 
+    instance_id = int(lines[0])
 
     num_customers = int(lines[2])
     num_chargers = int(lines[3])
@@ -84,7 +85,7 @@ def load_instance(file_path):
         locker_data = list(map(float, re.findall(r'[-+]?[0-9]*\.?[0-9]+', lines[lockers_index + i])))
         lockers.append(locker_data)
     
-    return Inputs(num_customers, num_chargers, num_lockers, num_vehicles, speed,
+    return Inputs(instance_id, num_customers, num_chargers, num_lockers, num_vehicles, speed,
                 max_vehicle_volume, max_battery_capacity, discharge_rate, recharge_rate,
                 locker_radius, locker_opening_cost, vehicle_deployment_cost,
                 cost_per_distance, cost_per_time_late_customer, cost_per_time_late_depot,
