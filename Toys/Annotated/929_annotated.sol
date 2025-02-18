@@ -1,7 +1,7 @@
 929// ID of the instance this solution solves
 Name_for_your_solution// E.g. seed, #iterations, random json str, etc (optional)
 1// 1 iff we believe this solution is feasible, otherwise 0
-1655.55// Total objective (real)
+1677.9191// Total objective (real)
 0// Locker open cost (real)
 126.76// Vehicle deploy cost (real)
 1435.62// Distance cost (real)

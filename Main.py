@@ -2,7 +2,7 @@ from load_data import load_instance, Vehicles
 from initial_solution import initial_solution
 from construct_initial_solution import Init_Sol_Constructor
 
-inputs_data = "Toys/Not Annotated/973.inst"
+inputs_data = "Toys/Not Annotated/996.inst"
 
 inputs = load_instance(inputs_data)
 
