@@ -121,8 +121,13 @@ class Vehicles:
         self.routes = [[0,0]]  # List of trips, each trip is a list of nodes
         self.customers = [] # List of customers served (routes might contains lockers, but here the corresponding customer is stored)
         self.charging_quantity =  [[0,0]] 
-        self.costs = [0]  # Cost per trip
         self.lengths = [0]  # Distance per trip
         self.capacities = [0]  # Capacity used per trip
         self.visited_parcel_lockers = [0] # Visited parcel lockers
+        self.unloading_completion_time = []
+        self.penalty_costs = []  # Penalty costs
+        self.locker_costs = []
+        self.vehicle_deployment_costs = []
+        self.travel_costs = []
+        
 
