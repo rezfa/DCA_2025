@@ -124,4 +124,5 @@ class Vehicles:
         self.costs = [0]  # Cost per trip
         self.lengths = [0]  # Distance per trip
         self.capacities = [0]  # Capacity used per trip
+        self.visited_parcel_lockers = [0] # Visited parcel lockers
 
