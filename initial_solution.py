@@ -1,94 +1,143 @@
+def find_closest_customer(current_location, unvisited_customers, inputs):
+    closest_customer = min(unvisited_customers, key=lambda c: inputs.distance_matrix[current_location][c])
+    return closest_customer
 
-def initial_solution(Inputs):
-    """Constructs an initial feasible solution for the problem, tracking time at each node and calculating objective function."""
-    route = []
-    trips = []
-    total_distance = 0
-    vehicle_count = 0
+def find_nearest_charger(current_location, inputs):
+    charger_indices = list(inputs.chargers.keys())  # Extract charger indices
+    charger_indices.append(0)  # Include the depot (location 0) as a charging option
     
-    for vehicle in Inputs.vehicles:
-        vehicle_id = vehicle[0]
-        soc = vehicle[1]
-        load = Inputs.max_vehicle_volume
-        depot = Inputs.depot
-        unvisited_customers = {customer[0] for customer in Inputs.customers}
-        locations = []  # Store locations separately
-        times = []  # Store time at each node separately
-        soc_levels = []  # Store SOC at each node separately
-        current_location = depot
+    # Filter out the current location from the charger options
+    charger_indices = [c for c in charger_indices if c != current_location]
+    
+    nearest_charger = min(charger_indices, key=lambda c: inputs.distance_matrix[current_location][c])
+    return nearest_charger
+
+def initial_solution(inputs, vehicles):
+    """Constructs an initial feasible solution for the problem, tracking time at each node and calculating objective function."""
+    unvisited_customers = list(inputs.customers.keys())
+    
+    for vehicle in vehicles:
+        current_location = 0
+        trip = 0 # Start with the first trip
         time = 0  # Initialize time tracking
+        battery_level = vehicles[vehicle].initial_battery
         
         while unvisited_customers:
-            trip_locations = [current_location]
-            trip_times = [time]
-            trip_soc = [soc]
-            vehicle_count += 1
+            feasible_customers = [c for c in unvisited_customers if vehicles[vehicle].capacities[trip] + inputs.customers[c][5] <= inputs.max_vehicle_volume]
             
-            while unvisited_customers:
-                target = find_nearest_customer(current_location, unvisited_customers, Inputs)
-                travel_time = distance(current_location, target) / Inputs.vehicle_speed
-                total_distance += distance(current_location, target)
-                
-                # Check if we can reach target
-                if soc < distance(current_location, target) * Inputs.discharge_rate:
-                    nearest_charger = find_nearest_charger(current_location, Inputs)
-                    travel_time_to_charger = distance(current_location, nearest_charger) / Inputs.vehicle_speed
-                    required_charge = max(0, min((distance(nearest_charger, depot) + distance(nearest_charger, target)) * Inputs.discharge_rate - soc, Inputs.max_battery_capacity - soc))
-                    charge_time = required_charge / Inputs.recharge_rate
-                    trip_locations.append(nearest_charger)
-                    trip_times.append(time + travel_time_to_charger + charge_time)
-                    trip_soc.append(min(soc + required_charge, Inputs.max_battery_capacity))
-                    soc = min(soc + required_charge, Inputs.max_battery_capacity)
-                    time += travel_time_to_charger + charge_time
-                
-                # Check if we can return after serving customer
-                if soc < (distance(current_location, target) + distance(target, find_nearest_charger(target, Inputs))) * Inputs.discharge_rate:
-                    nearest_charger = find_nearest_charger(current_location, Inputs)
-                    travel_time_to_charger = distance(current_location, nearest_charger) / Inputs.vehicle_speed
-                    required_charge = max(0, min((distance(nearest_charger, depot)) * Inputs.discharge_rate - soc, Inputs.max_battery_capacity - soc))
-                    charge_time = required_charge / Inputs.recharge_rate
-                    trip_locations.append(nearest_charger)
-                    trip_times.append(time + travel_time_to_charger + charge_time)
-                    trip_soc.append(min(soc + required_charge, Inputs.max_battery_capacity))
-                    soc = min(soc + required_charge, Inputs.max_battery_capacity)
-                    time += travel_time_to_charger + charge_time
-                
-                # Check load capacity
-                if load < Inputs.customer_demands[target]:
-                    trip_locations.append(depot)
-                    trip_times.append(time)
-                    trip_soc.append(soc)
-                    load = Inputs.max_vehicle_volume
-                    soc = vehicle[1]
-                    time += Inputs.depot_service_time
-                
-                # Visit customer
-                trip_locations.append(target)
-                trip_times.append(time + travel_time)
-                trip_soc.append(soc)
-                unvisited_customers.remove(target)
-                load = max(0, min(load - Inputs.customer_demands[target], Inputs.max_vehicle_volume))
-                soc = max(0, soc - distance(current_location, target) * Inputs.discharge_rate)
-                time += travel_time + Inputs.service_time[target]
-                current_location = target
+            if not feasible_customers:
+                # If no customers can be added due to capacity, check depot return condition
+                time += inputs.distance_matrix[current_location][0]
+                battery_level -= inputs.distance_matrix[current_location][0] * inputs.discharge_rate
+                if time <= 0.9 * inputs.depot[3]:
+                    vehicles[vehicle].routes.append([0,0])
+                    vehicles[vehicle].charging_quantity.append([0,0])
+                    vehicles[vehicle].capacities.append(0)
+                    trip += 1
+                    current_location = 0 
+                    continue  # Go back to the start of the while loop for the current vehicle
+                break # Exit the loop for this vehicle and move to the next vehicle
             
-            # Return to depot
-            travel_time_to_depot = distance(current_location, depot) / Inputs.vehicle_speed
-            total_distance += distance(current_location, depot)
-            trip_locations.append(depot)
-            trip_times.append(time + travel_time_to_depot)
-            trip_soc.append(soc)
-            trips.append((vehicle_id, trip_locations, trip_times, trip_soc))
-            soc = vehicle[1]
-            load = Inputs.max_vehicle_volume
-            current_location = depot
-            time += travel_time_to_depot
+            # Find the closest feasible customer
+            closest_customer = find_closest_customer(current_location, feasible_customers, inputs)
+            driving_distance = inputs.distance_matrix[current_location][closest_customer]
+            remaining_battery = battery_level - driving_distance * inputs.discharge_rate
+            
+            if remaining_battery > 0:
+                # Check if after adding the customer, the vehicle can reach a charging station or the depot
+                nearest_charger = find_nearest_charger(closest_customer, inputs)
+                distance_to_charger = inputs.distance_matrix[closest_customer][nearest_charger]
+                distance_to_depot = inputs.distance_matrix[closest_customer][0]
+                
+                if remaining_battery - min(distance_to_charger, distance_to_depot) * inputs.discharge_rate > 0:
+                    # Insert the customer in the last position of the current trip
+                    vehicles[vehicle].routes[trip].insert(len(vehicles[vehicle].routes[trip])-1, closest_customer)
+                    vehicles[vehicle].charging_quantity[trip].insert(len(vehicles[vehicle].routes[trip])-1, 0)
+                    time += driving_distance / inputs.speed + inputs.customers[closest_customer][3]
+                    unvisited_customers.remove(closest_customer)
+                    battery_level = remaining_battery
+                    vehicles[vehicle].capacities[trip] += inputs.customers[closest_customer][5]
+                    current_location = closest_customer
+                else:
+                    # Need to go to a charging station first
+                    if nearest_charger != 0:
+                        vehicles[vehicle].routes[trip].insert(len(vehicles[vehicle].routes[trip])-1, nearest_charger)
+                        charging_quantity = inputs.max_battery_capacity - (battery_level - inputs.distance_matrix[current_location][nearest_charger] * inputs.discharge_rate)
+                        vehicles[vehicle].charging_quantity[trip].insert(len(vehicles[vehicle].charging_quantity[trip])-1, charging_quantity)
+                        time += inputs.distance_matrix[current_location][nearest_charger] / inputs.speed + charging_quantity / inputs.recharge_rate
+                        battery_level = inputs.max_battery_capacity
+                        current_location = nearest_charger
+                    else:
+                        time += inputs.distance_matrix[current_location][nearest_charger]
+                        battery_level -= inputs.distance_matrix[current_location][nearest_charger] * inputs.discharge_rate
+                        if time <= 0.9 * inputs.depot[3]:
+                            vehicles[vehicle].routes.append([0,0])
+                            vehicles[vehicle].charging_quantity.append([0,0])
+                            charging_quantity = inputs.max_battery_capacity - (battery_level - inputs.distance_matrix[current_location][nearest_charger] * inputs.discharge_rate)
+                            vehicles[vehicle].charging_quantity[trip][-1] = charging_quantity
+                            battery_level = inputs.max_battery_capacity
+                            vehicles[vehicle].capacities.append(0)
+                            trip += 1
+                            current_location = 0
+                            continue  # Go back to the start of the while loop for the current vehicle
+                        break # Exit the loop for this vehicle and move to the next vehicle
+            else:
+                # Not enough battery to reach the customer, go to the nearest charging station first
+                nearest_charger = find_nearest_charger(current_location, inputs)
+                if battery_level - inputs.distance_matrix[current_location][nearest_charger] * inputs.discharge_rate > 0:
+                    if nearest_charger != 0:
+                        vehicles[vehicle].routes[trip].insert(len(vehicles[vehicle].routes[trip])-1, nearest_charger)
+                        charging_quantity = inputs.max_battery_capacity - (battery_level - inputs.distance_matrix[current_location][nearest_charger] * inputs.discharge_rate)
+                        vehicles[vehicle].charging_quantity[trip].insert(len(vehicles[vehicle].charging_quantity[trip])-1, charging_quantity)
+                        time += inputs.distance_matrix[current_location][nearest_charger] / inputs.speed + charging_quantity / inputs.recharge_rate
+                        battery_level = inputs.max_battery_capacity
+                        current_location = nearest_charger
+                    else:
+                        time += inputs.distance_matrix[current_location][nearest_charger]
+                        battery_level -= inputs.distance_matrix[current_location][nearest_charger] * inputs.discharge_rate
+                        if time <= 0.9 * inputs.depot[3]:
+                            vehicles[vehicle].routes.append([0,0])
+                            vehicles[vehicle].charging_quantity.append([0,0])
+                            charging_quantity = inputs.max_battery_capacity - (battery_level - inputs.distance_matrix[current_location][nearest_charger] * inputs.discharge_rate)
+                            vehicles[vehicle].charging_quantity[trip][-1] = charging_quantity
+                            battery_level = inputs.max_battery_capacity
+                            vehicles[vehicle].capacities.append(0)
+                            trip += 1
+                            current_location = 0
+                            continue  # Go back to the start of the while loop for the current vehicle
+            
+                        break # Exit the loop for this vehicle and move to the next vehicle
+                        
+                else:
+                    if time <= 0.9 * inputs.depot[3]:
+                        vehicles[vehicle].routes.append([0,0])
+                        vehicles[vehicle].charging_quantity.append([0,0])
+                        vehicles[vehicle].capacities.append(0)
+                        trip += 1
+                        current_location = 0
+                        continue  # Go back to the start of the while loop for the current vehicle
+                    break # Exit the loop for this vehicle and move to the next vehicle
         
-        route.append(trips)
-    
-    # Calculate objective function
-    penalty_customer_late = sum(max(0, arrival_time - Inputs.customer_deadlines[node]) * Inputs.penalty_per_time_unit for trip in trips for node, arrival_time in zip(trip[1], trip[2]) if node in Inputs.customer_deadlines)
-    penalty_depot_late = max(0, trips[-1][2][-1] - Inputs.depot_deadline) * Inputs.penalty_per_time_unit if trips else 0
-    total_cost = (vehicle_count * Inputs.vehicle_deployment_cost) + (penalty_customer_late + penalty_depot_late) + (total_distance * Inputs.cost_per_distance)
-    
-    return route, trips, total_cost
+        # Check if it's possible to return to the depot from the last customer
+        if not unvisited_customers:
+            distance_to_depot = inputs.distance_matrix[current_location][0]
+            
+            while battery_level - distance_to_depot * inputs.discharge_rate < 0:  # Check if battery is sufficient
+                # Not enough battery to reach the depot, go to the nearest charging station
+                nearest_charger = find_nearest_charger(current_location, inputs)
+                vehicles[vehicle].routes[trip].insert(len(vehicles[vehicle].routes[trip])-1, nearest_charger)  # Add charging station to the route
+                charging_quantity = inputs.max_battery_capacity - (battery_level - inputs.distance_matrix[current_location][nearest_charger] * inputs.discharge_rate)
+                vehicles[vehicle].charging_quantity[trip].insert(len(vehicles[vehicle].charging_quantity[trip])-1, charging_quantity)
+                time += inputs.distance_matrix[current_location][nearest_charger] / inputs.speed + charging_quantity / inputs.recharge_rate
+                battery_level = inputs.max_battery_capacity
+                current_location = nearest_charger  # Move to the charging station
+
+                # Recalculate the distance to the depot after charging
+                distance_to_depot = inputs.distance_matrix[current_location][0]
+                
+            # After recharging, the vehicle can return to the depot
+            time += distance_to_depot / inputs.speed  # Add the time to return to the depot
+
+                    
+    return vehicles
+
