@@ -28,7 +28,7 @@ def initial_solution(inputs, vehicles):
         trip = 0 # Start with the first trip
         time = 0  # Initialize time tracking
         battery_level = vehicles[vehicle].initial_battery
-        visited_charging_since_last_customer = []
+        visited_charging_since_last_customer = [0]
         
         while unvisited_customers:
             feasible_customers = [c for c in unvisited_customers if vehicles[vehicle].capacities[trip] + inputs.customers[c][5] <= inputs.max_vehicle_volume]

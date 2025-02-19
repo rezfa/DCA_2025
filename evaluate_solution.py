@@ -21,25 +21,26 @@ def determine_unloading_completion_time(vehicle,inputs):
     return unloading_completion_times
 
 def locker_delivery(vehicles,inputs):
-    locker_delivery = [1] * inputs.num_customers  # Initialize all customers as locker deliveries (1)
+    locker_delivery = [0] * inputs.num_customers  # Initialize all customers as locker deliveries (1)
 
     for vehicle in list(vehicles.keys()):
-         for route in vehicles[vehicle].routes:  # Iterate through each vehicle's list of routes
-            for customer in route:
-                if customer in list(inputs.customers.keys()):
-                    locker_delivery[customer - 1] = 0  # Mark customer as home delivery (0)
+        for route in range(len(vehicles[vehicle].routes)):# Iterate through each vehicle's list of routes
+            for loc in range(len(vehicles[vehicle].routes[route])):
+                if vehicles[vehicle].routes[route][loc] in list(inputs.lockers.keys()):
+                    customer = vehicles[vehicle].customers[route][loc]
+                    locker_delivery[customer - 1] = vehicles[vehicle].routes[route][loc]  # Mark customer as home delivery (0)
     return locker_delivery
             
 def evaluate_penalty_costs(vehicle,inputs):
-    penalty = 0
+    penalty_cust = 0
     for route in range(len(vehicle.routes)):
         for loc in range(1,len(vehicle.routes[route])-1):
             if vehicle.routes[route][loc] in list(inputs.customers.keys()):
-               penalty += inputs.cost_per_time_late_customer * max(vehicle.unloading_completion_time[route][loc] - inputs.customers[vehicle.routes[route][loc]][4],0)
-    # add the depot penalty
-    penalty += inputs.cost_per_time_late_depot * max(vehicle.unloading_completion_time[-1][-1] - inputs.depot[3],0)
+               penalty_cust += inputs.cost_per_time_late_customer * max(vehicle.unloading_completion_time[route][loc] - inputs.customers[vehicle.routes[route][loc]][4],0)
+    # compute the depot penalty
+    penalty_depot = inputs.cost_per_time_late_depot * max(vehicle.unloading_completion_time[-1][-1] - inputs.depot[3],0)
     
-    return penalty
+    return penalty_cust, penalty_depot
 
 def evaluate_locker_costs(vehicle,inputs):
     return len(vehicle.visited_parcel_lockers) * inputs.locker_opening_cost
