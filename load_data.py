@@ -123,7 +123,7 @@ class Vehicles:
         self.charging_quantity =  [[0,0]] 
         self.lengths = [0]  # Distance per trip
         self.capacities = [0]  # Capacity used per trip
-        self.visited_parcel_lockers = [0] # Visited parcel lockers
+        self.visited_parcel_lockers = [] # Visited parcel lockers
         self.unloading_completion_time = []
         self.penalty_costs_customer = []  # Penalty costs
         self.penalty_costs_depot = []
