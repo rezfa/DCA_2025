@@ -2,8 +2,12 @@ from load_data import load_instance, Vehicles
 from initial_solution import initial_solution
 from evaluate_solution import determine_unloading_completion_time, evaluate_penalty_costs, evaluate_locker_costs, evaluate_vehicle_deployment_costs, evaluate_travel_costs, locker_delivery
 from write_solution_file import write_solution_file
+from feasibility_checker import check_solution_feasibility
+from destroy_ops import random_removal_operator
+from repair_ops import greedy_insertion_operator
 
-instance_id = 996
+
+instance_id = 929
 inputs_data = f"Toys/Not Annotated/{instance_id}.inst"
 
 inputs = load_instance(inputs_data)
@@ -37,3 +41,25 @@ write_solution_file(instance_id, instance_description, feasible, total_costs, lo
                         vehicle_deployment_costs, travel_costs, penalty_costs_customer, penalty_costs_depot, 
                         locker_delivery, vehicles)
 
+#############
+# New addition
+#############
+
+new_vehicles1, removed_customers = random_removal_operator(vehicles, inputs, removal_rate=0.2, random_seed=None)
+new_vehicles2, not_inserted = greedy_insertion_operator(vehicles, removed_customers, inputs)
+
+print(removed_customers)
+for vid, vehicle in new_vehicles2.items():
+    print(f"Vehicle {vid} Routes:")
+    for trip_index, route in enumerate(vehicle.routes):
+        print(f"  Trip {trip_index}: {route}")
+
+
+solution_file = "929.sol"
+is_feasible, message = check_solution_feasibility(solution_file, inputs, vehicles)
+if is_feasible:
+    print("The solution is feasible.")
+else:
+    print("The solution is infeasible. Errors:")
+    for error in message:
+        print(error)
