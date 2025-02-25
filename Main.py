@@ -7,7 +7,7 @@ from destroy_ops import random_removal_operator
 from repair_ops import greedy_insertion_operator
 
 
-instance_id = 929
+instance_id = 996
 inputs_data = f"Toys/Not Annotated/{instance_id}.inst"
 
 inputs = load_instance(inputs_data)
@@ -45,17 +45,26 @@ write_solution_file(instance_id, instance_description, feasible, total_costs, lo
 # New addition
 #############
 
-new_vehicles1, removed_customers = random_removal_operator(vehicles, inputs, removal_rate=0.2, random_seed=None)
-new_vehicles2, not_inserted = greedy_insertion_operator(vehicles, removed_customers, inputs)
 
-print(removed_customers)
+new_vehicles1, removed_customers = random_removal_operator(vehicles, inputs, removal_rate=0.5)
+print("Removed customers:", removed_customers)
+for vid, vehicle in new_vehicles1.items():
+    print(f"Vehicle {vid} Routes:")
+    for trip_idx, route in enumerate(vehicle.routes):
+        print(f"  Trip {trip_idx}: {route}")
+
+new_vehicles2, not_inserted = greedy_insertion_operator(new_vehicles1, removed_customers, inputs, vehicles)
+
+print("After insertion:")
+
 for vid, vehicle in new_vehicles2.items():
     print(f"Vehicle {vid} Routes:")
-    for trip_index, route in enumerate(vehicle.routes):
-        print(f"  Trip {trip_index}: {route}")
+    for trip_idx, route in enumerate(vehicle.routes):
+        print(f"  Trip {trip_idx}: {route}")
+print("Not inserted:", not_inserted)
 
-
-solution_file = "929.sol"
+""""
+solution_file = "943.sol"
 is_feasible, message = check_solution_feasibility(solution_file, inputs, vehicles)
 if is_feasible:
     print("The solution is feasible.")
@@ -63,3 +72,5 @@ else:
     print("The solution is infeasible. Errors:")
     for error in message:
         print(error)
+
+"""

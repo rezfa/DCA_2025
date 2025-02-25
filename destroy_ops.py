@@ -1,60 +1,74 @@
 import random
 import copy
 
-def random_removal_operator(vehicles, inputs, removal_rate=0.2, random_seed=None):
+def random_removal_operator(vehicles, inputs, removal_rate=0.5, random_seed=None):
     """
-    Random removal destroy operator.
-    
-    This operator randomly removes a percentage (removal_rate) of customer nodes 
-    from each vehicle's routes. It only removes nodes that are customers (as defined in inputs.customers)
-    and never removes depot nodes (0) or other nodes (e.g., chargers or lockers).
+    Randomly removes a percentage of customers from vehicle routes.
     
     Parameters:
-      vehicles: A dictionary mapping vehicle IDs to Vehicles objects.
-                Each Vehicles object contains attributes such as 'routes' (list of trips),
-                'charging_quantity' (list of lists aligned with routes), 'capacities', etc.
-      inputs: An instance of the Inputs class. This is used to determine which nodes are customers.
-      removal_rate: Float in [0,1]. The percentage of customer nodes to remove from each route.
-      random_seed: Optional integer seed for reproducibility.
-      
-    Returns:
-      new_vehicles: A deep copy of the vehicles dictionary, with the selected customer nodes removed.
-      removed_customers: A list of tuples (vehicle_id, route_index, customer_node) representing the removed nodes.
-    """
+    - vehicles: Dict of Vehicles objects representing the current solution
+    - inputs: Inputs object containing problem data (customers, distance matrix, etc.)
+    - removal_rate: Fraction of customers to remove (default: 0.2)
+    - random_seed: Seed for reproducibility (optional)
     
+    Returns:
+    - new_vehicles: Modified deep copy of vehicles with customers removed
+    - removed_customers: List of customer IDs removed from the routes
+    """
     if random_seed is not None:
         random.seed(random_seed)
     
-    new_vehicles = copy.deepcopy(vehicles)
-    removed_customers = []
+    # Create a deep copy of vehicles to avoid modifying the original
+    new_vehicles = {vid: copy.deepcopy(vehicle) for vid, vehicle in vehicles.items()}
     
-    # Iterate over each vehicle in the solution.
-    for vid, vehicle in new_vehicles.items():
-        # Iterate over each trip (route) in this vehicle.
-        for route_index, route in enumerate(vehicle.routes):
-            # Identify indices of nodes that are customers.
-            customer_indices = [i for i, node in enumerate(route) if node in inputs.customers]
-            # Calculate the number of customers to remove (round down).
-            num_to_remove = int(len(customer_indices) * removal_rate)
-            if num_to_remove < 1 and len(customer_indices) > 0:
-                num_to_remove = 1
-
-            if num_to_remove > 0:
-                # Randomly choose indices (from the candidate customer indices) to remove.
-                indices_to_remove = random.sample(customer_indices, num_to_remove)
-                # Remove in descending order to preserve correct indices.
-                for idx in sorted(indices_to_remove, reverse=True):
-                    removed_node = route[idx]
-                    removed_customers.append((vid, route_index, removed_node))
-                    # Remove the customer node from the route.
-                    del route[idx]
-                    # Remove the corresponding charging entry.
-                    del vehicle.charging_quantity[route_index][idx]
-                    # Optionally update capacity for that route:
-                    if vehicle.capacities and len(vehicle.capacities) > route_index:
-                        demand = inputs.customers[removed_node][5]  # assuming demand is stored at index 5
-                        vehicle.capacities[route_index] -= demand
-                    # You could also update route lengths here if desired,
-                    # or recompute them later in a separate evaluation function.
+    # Collect all customers currently in the solution
+    all_customers = []
+    for vehicle in new_vehicles.values():
+        for route in vehicle.customers:
+            for loc in route:
+                if loc in inputs.customers.keys():
+                    all_customers.append(loc)
+    
+    # Calculate number of customers to remove
+    num_to_remove = max(1, int(len(all_customers) * removal_rate))  # Ensure at least 1 is removed
+    removed_customers = random.sample(all_customers, num_to_remove)
+    
+    # Remove selected customers from routes and update related attributes
+    for vehicle in new_vehicles.values():
+        for route_idx in range(len(vehicle.routes)):
+            # Filter out removed customers from the route
+            new_route = [loc for loc in vehicle.routes[route_idx] if loc not in removed_customers]
+            vehicle.routes[route_idx] = new_route
+            # Update customers list accordingly
+            vehicle.customers[route_idx] = [loc for loc in vehicle.customers[route_idx] if loc not in removed_customers]
+            # Adjust capacities (subtract demand of removed customers)
+            vehicle.capacities[route_idx] = sum(inputs.customers[loc][5] for loc in vehicle.customers[route_idx] if loc in inputs.customers.keys())
+            # Reset lengths and charging quantities (to be recalculated later if needed)
+            vehicle.lengths[route_idx] = 0  # Will need recalculation
+            vehicle.charging_quantity[route_idx] = [0] * len(new_route)
+    
+    # Clean up empty trips by creating new lists, ensuring consistency
+    for vehicle in new_vehicles.values():
+        new_routes = []
+        new_customers = []
+        new_capacities = []
+        new_lengths = []
+        new_charging_quantity = []
+        
+        for i in range(len(vehicle.routes)):
+            # Only keep trips with more than just depot start/end (len > 2)
+            if len(vehicle.routes[i]) > 2:
+                new_routes.append(vehicle.routes[i])
+                new_customers.append(vehicle.customers[i])
+                new_capacities.append(vehicle.capacities[i])
+                new_lengths.append(vehicle.lengths[i])
+                new_charging_quantity.append(vehicle.charging_quantity[i])
+        
+        # Update vehicle attributes with cleaned lists
+        vehicle.routes = new_routes
+        vehicle.customers = new_customers
+        vehicle.capacities = new_capacities
+        vehicle.lengths = new_lengths
+        vehicle.charging_quantity = new_charging_quantity
     
     return new_vehicles, removed_customers

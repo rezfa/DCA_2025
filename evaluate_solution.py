@@ -31,15 +31,15 @@ def locker_delivery(vehicles,inputs):
                     locker_delivery[customer - 1] = vehicles[vehicle].routes[route][loc]  # Mark customer as home delivery (0)
     return locker_delivery
             
-def evaluate_penalty_costs(vehicle,inputs):
+def evaluate_penalty_costs(vehicle, inputs):
     penalty_cust = 0
+    if not vehicle.routes:  # Handle vehicles with no routes
+        return 0, 0
     for route in range(len(vehicle.routes)):
-        for loc in range(1,len(vehicle.routes[route])-1):
+        for loc in range(1, len(vehicle.routes[route]) - 1):
             if vehicle.routes[route][loc] in list(inputs.customers.keys()):
-               penalty_cust += inputs.cost_per_time_late_customer * max(vehicle.unloading_completion_time[route][loc] - inputs.customers[vehicle.routes[route][loc]][4],0)
-    # compute the depot penalty
-    penalty_depot = inputs.cost_per_time_late_depot * max(vehicle.unloading_completion_time[-1][-1] - inputs.depot[3],0)
-    
+               penalty_cust += inputs.cost_per_time_late_customer * max(vehicle.unloading_completion_time[route][loc] - inputs.customers[vehicle.routes[route][loc]][4], 0)
+    penalty_depot = inputs.cost_per_time_late_depot * max(vehicle.unloading_completion_time[-1][-1] - inputs.depot[3], 0)
     return penalty_cust, penalty_depot
 
 def evaluate_locker_costs(vehicle,inputs):
