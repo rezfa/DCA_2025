@@ -47,15 +47,16 @@ write_solution_file(instance_id, instance_description, feasible, total_costs, lo
 
 
 new_vehicles1, removed_customers = random_removal_operator(vehicles, inputs, removal_rate=0.5)
+
 print("Removed customers:", removed_customers)
 for vid, vehicle in new_vehicles1.items():
     print(f"Vehicle {vid} Routes:")
     for trip_idx, route in enumerate(vehicle.routes):
         print(f"  Trip {trip_idx}: {route}")
 
-new_vehicles2, not_inserted = greedy_insertion_operator(new_vehicles1, removed_customers, inputs, vehicles)
+new_vehicles2, not_inserted = greedy_insertion_operator(new_vehicles1, removed_customers, inputs)
 
-print("After insertion:")
+print("\nAfter insertion:")
 
 for vid, vehicle in new_vehicles2.items():
     print(f"Vehicle {vid} Routes:")

@@ -46,29 +46,5 @@ def random_removal_operator(vehicles, inputs, removal_rate=0.5, random_seed=None
             # Reset lengths and charging quantities (to be recalculated later if needed)
             vehicle.lengths[route_idx] = 0  # Will need recalculation
             vehicle.charging_quantity[route_idx] = [0] * len(new_route)
-    
-    # Clean up empty trips by creating new lists, ensuring consistency
-    for vehicle in new_vehicles.values():
-        new_routes = []
-        new_customers = []
-        new_capacities = []
-        new_lengths = []
-        new_charging_quantity = []
-        
-        for i in range(len(vehicle.routes)):
-            # Only keep trips with more than just depot start/end (len > 2)
-            if len(vehicle.routes[i]) > 2:
-                new_routes.append(vehicle.routes[i])
-                new_customers.append(vehicle.customers[i])
-                new_capacities.append(vehicle.capacities[i])
-                new_lengths.append(vehicle.lengths[i])
-                new_charging_quantity.append(vehicle.charging_quantity[i])
-        
-        # Update vehicle attributes with cleaned lists
-        vehicle.routes = new_routes
-        vehicle.customers = new_customers
-        vehicle.capacities = new_capacities
-        vehicle.lengths = new_lengths
-        vehicle.charging_quantity = new_charging_quantity
-    
+
     return new_vehicles, removed_customers
