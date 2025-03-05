@@ -51,6 +51,14 @@ def evaluate_vehicle_deployment_costs(vehicle,inputs):
 def evaluate_travel_costs(vehicle, inputs):
     return sum(vehicle.lengths) * inputs.cost_per_distance 
 
+def compute_objective(vehicles):
+    penalty_costs_customer = sum(vehicles[vehicle].penalty_costs_customer for vehicle in vehicles.keys())
+    penalty_costs_depot = sum(vehicles[vehicle].penalty_costs_depot for vehicle in vehicles.keys())
+    locker_costs = sum(vehicles[vehicle].locker_costs for vehicle in vehicles.keys()) 
+    vehicle_deployment_costs = sum(vehicles[vehicle].vehicle_deployment_costs for vehicle in vehicles.keys())
+    travel_costs = sum(vehicles[vehicle].travel_costs for vehicle in vehicles.keys())
+    total_costs = penalty_costs_customer + penalty_costs_depot + locker_costs + vehicle_deployment_costs + travel_costs
+    return total_costs
 
    
    

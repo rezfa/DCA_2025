@@ -56,8 +56,8 @@ def check_solution_feasibility_from_dict(vehicles, inputs):
             errors.append(f"Customer {cust}: Visited {count} times (expected exactly once).")
     
     if errors:
-        return False, errors
-    return True, "Solution is feasible."
+        return 0, errors
+    return 1, "Solution is feasible."
 
 # Example usage:
 # feasible, messages = check_solution_feasibility_from_dict(vehicles, inputs)

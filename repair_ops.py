@@ -1,8 +1,23 @@
-import copy
 from evaluate_solution import determine_unloading_completion_time, evaluate_penalty_costs, evaluate_locker_costs, evaluate_vehicle_deployment_costs, evaluate_travel_costs
 from initial_solution import find_nearest_charger
 
-def greedy_insertion_operator(vehicles, uninserted_customers, inputs):
+def best_out_of_five_insertion(new_vehicles, inputs, removed_customers, affected_vehicles):
+    for customer in removed_customers:
+        
+        
+        
+        
+
+
+    return new_vehicles, affected_vehicles
+
+
+
+
+
+
+
+def greedy_insertion_operator(new_vehicles, inputs, removed_customers):
     """
     Greedily inserts uninserted customers into feasible vehicle routes while ensuring 
     capacity and battery feasibility. Charging stops are added if necessary.

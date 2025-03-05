@@ -1,4 +1,5 @@
 import copy
+from evaluate_solution import determine_unloading_completion_time, evaluate_penalty_costs, evaluate_locker_costs, evaluate_vehicle_deployment_costs, evaluate_travel_costs
 
 def find_closest_customer(current_location, unvisited_customers, inputs):
     closest_customer = min(unvisited_customers, key=lambda c: inputs.distance_matrix[current_location][c])
@@ -166,6 +167,13 @@ def initial_solution(inputs, vehicles):
     for vehicle in vehicles:
         vehicles[vehicle].customers = copy.deepcopy(vehicles[vehicle].routes)
     
-                    
+    for vehicle in list(vehicles.keys()):
+        vehicles[vehicle].unloading_completion_time = determine_unloading_completion_time(vehicles[vehicle],inputs)
+        vehicles[vehicle].penalty_costs_customer = evaluate_penalty_costs(vehicles[vehicle],inputs)[0]
+        vehicles[vehicle].penalty_costs_depot = evaluate_penalty_costs(vehicles[vehicle],inputs)[1]
+        vehicles[vehicle].locker_costs = evaluate_locker_costs(vehicles[vehicle],inputs)
+        vehicles[vehicle].vehicle_deployment_costs = evaluate_vehicle_deployment_costs(vehicles[vehicle],inputs)
+        vehicles[vehicle].travel_costs = evaluate_travel_costs(vehicles[vehicle],inputs)
+                
     return vehicles
 
